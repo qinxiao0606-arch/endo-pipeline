@@ -1,0 +1,25 @@
+# ---- DONNÉES RÉELLES : NE JAMAIS COMMITER ----
+# Les réponses réelles au questionnaire ne doivent pas être publiées
+# tant que le k-anonymat n'est pas vérifié et validé par le DPO.
+data/real/
+data/external/*.xlsx
+data/external/*.csv
+data/export*.csv
+data/*_reel*.csv
+data/*_real*.csv
+
+# ---- Sorties générées ----
+out/
+!out/.gitkeep
+
+# ---- Python ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+.ipynb_checkpoints/
+
+# ---- Système ----
+.DS_Store
+Thumbs.db
