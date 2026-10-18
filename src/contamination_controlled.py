@@ -149,10 +149,18 @@ def cv_proba(X, y, folds, seed):
                              cv=cv, method="predict_proba")[:, 1]
 
 
-def evaluate(X, y_obs, y_true, rate, folds, seed, vuln_mild, vuln_atyp, picked):
+def evaluate(X, y_obs, y_true, rate, folds, seed, vuln_mild, vuln_atyp, picked,
+             cutoff="observed"):
     p = cv_proba(X, y_obs, folds, seed)
 
     se50, sp50 = sens_spec((p >= 0.50).astype(int), y_true)
+    # 2026-10-17 fix (PROGRESS P-10, same bug Julia found on 09-16 in the overall
+    # numbers): the cut-off flags the top `rate` fraction. `rate` used to be the CLEAN
+    # prevalence, which no analyst can know once labels are contaminated; it is now
+    # the OBSERVED prevalence of y_obs, recomputed per draw. cutoff="clean" keeps the
+    # old behaviour so the pre-fix numbers can be reproduced.
+    if cutoff == "observed":
+        rate = float(np.mean(y_obs))
     k = int(round(rate * len(p)))
     thr = np.sort(p)[::-1][min(k, len(p) - 1)] if k else 1.0
     pred_r = (p >= thr).astype(int)
@@ -194,6 +202,9 @@ def main():
     ap.add_argument("--folds", type=int, default=5)
     ap.add_argument("--sharpness", type=float, default=3.0,
                     help="how strongly selection favours the target phenotype")
+    ap.add_argument("--cutoff", choices=["observed", "clean"], default="observed",
+                    help="prevalence used for the cut-off: observed labels (fixed "
+                         "2026-10-17) or the clean prevalence (pre-fix behaviour)")
     args = ap.parse_args()
 
     out = Path(args.out)
@@ -241,7 +252,7 @@ def main():
                     continue
                 ys = pd.Series(y_obs, index=X.index)
                 m = evaluate(X, ys, y_true, rate, args.folds, SEED + r,
-                             vuln_mild, vuln_atyp, picked)
+                             vuln_mild, vuln_atyp, picked, cutoff=args.cutoff)
                 imp = importances(X, ys)
                 recs.append({"arm": arm, "contamination": frac, "repeat": r,
                              "observed_cases": int(y_obs.sum()),
